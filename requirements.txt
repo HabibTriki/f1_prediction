@@ -1,0 +1,14 @@
+kafka-python
+pyspark
+requests
+feedparser
+beautifulsoup4
+fastf1
+pandas
+scikit-learn
+sqlalchemy
+psycopg2
+elasticsearch
+kibana-api
+python-dotenv
+tweepy
