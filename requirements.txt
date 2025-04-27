@@ -8,7 +8,5 @@ pandas
 scikit-learn
 sqlalchemy
 psycopg2
-elasticsearch
-kibana-api
 python-dotenv
 tweepy
