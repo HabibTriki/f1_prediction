@@ -1,26 +1,88 @@
-
 version: '3.8'
 
 services:
+  # Existing Zookeeper service
   zookeeper:
-    image: wurstmeister/zookeeper
+    image: bitnami/zookeeper:3.8
+    container_name: zookeeper
     ports:
       - "2181:2181"
+    environment:
+      - ALLOW_ANONYMOUS_LOGIN=yes
+    volumes:
+      - "zookeeper_data:/bitnami/zookeeper"
 
+  # Existing Kafka service
   kafka:
-    image: wurstmeister/kafka
+    image: bitnami/kafka:3.4
+    container_name: kafka
     ports:
       - "9092:9092"
+      - "29092:29092"
     environment:
-      KAFKA_ADVERTISED_HOST_NAME: localhost
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeper:2181
+      - ALLOW_PLAINTEXT_LISTENER=yes
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,PLAINTEXT_HOST://:29092
+      - KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE=true
+    depends_on:
+      - zookeeper
+    volumes:
+      - "kafka_data:/bitnami/kafka"
 
+  # PostgreSQL Database
   postgres:
-    image: postgres
-    restart: always
+    image: bitnami/postgresql:15
+    container_name: postgres
     environment:
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: f1_insights
+      - POSTGRESQL_USERNAME=f1user
+      - POSTGRESQL_PASSWORD=f1password
+      - POSTGRESQL_DATABASE=formula1
     ports:
       - "5432:5432"
+    volumes:
+      - "postgres_data:/bitnami/postgresql"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U f1user -d formula1"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Spark Cluster
+  spark-master:
+    image: bitnami/spark:3.5
+    container_name: spark-master
+    ports:
+      - "8080:8080"  # Spark UI
+      - "7077:7077"  # Master port
+    environment:
+      - SPARK_MODE=master
+      - SPARK_RPC_AUTHENTICATION_ENABLED=no
+      - SPARK_RPC_ENCRYPTION_ENABLED=no
+      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
+      - SPARK_SSL_ENABLED=no
+    depends_on:
+      - kafka
+      - postgres
+
+  spark-worker:
+    image: bitnami/spark:3.5
+    container_name: spark-worker
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_MASTER_URL=spark://spark-master:7077
+      - SPARK_WORKER_MEMORY=4G
+      - SPARK_WORKER_CORES=2
+    depends_on:
+      - spark-master
+    deploy:
+      replicas: 2  # Scale to 2 workers
+
+volumes:
+  zookeeper_data:
+    driver: local
+  kafka_data:
+    driver: local
+  postgres_data:
+    driver: local
