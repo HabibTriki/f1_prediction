@@ -10,3 +10,4 @@ sqlalchemy
 psycopg2
 python-dotenv
 tweepy
+azure-storage-blob
