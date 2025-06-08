@@ -1,5 +1,6 @@
 from mrjob.job import MRJob
 import csv
+import math
 from io import StringIO
 
 class LapTimeAverage(MRJob):
@@ -17,12 +18,16 @@ class LapTimeAverage(MRJob):
             lap_time = float(fields[2])
         except ValueError:
             return
+        if math.isnan(lap_time):
+            return
         yield driver, (lap_time, 1)
 
     def reducer(self, driver, values):
         total = 0.0
         count = 0
         for lap_time, num in values:
+            if math.isnan(lap_time):
+                continue
             total += lap_time
             count += num
         if count:
