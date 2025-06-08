@@ -17,7 +17,7 @@ def main():
     )
 
     hdfs_root = os.getenv("HDFS_PATH", "hdfs_storage")
-    input_path = os.path.join(hdfs_root, "mapreduce_output", "part-*")
+    input_path = os.path.join(hdfs_root, "mapreduce_output")
 
     schema = StructType([
         StructField("driver", StringType()),
@@ -29,8 +29,8 @@ def main():
     jdbc_url = os.getenv("POSTGRES_URL", "jdbc:postgresql://localhost:5432/formula1")
     table = os.getenv("POSTGRES_TABLE", "historical_avg_laps")
     properties = {
-        "user": os.getenv("POSTGRES_USER", "f1user"),
-        "password": os.getenv("POSTGRES_PASSWORD", "f1password"),
+        "user": os.getenv("POSTGRES_USER"),
+        "password": os.getenv("POSTGRES_PASSWORD"),
         "driver": "org.postgresql.Driver",
     }
 
