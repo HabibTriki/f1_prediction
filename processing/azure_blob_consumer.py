@@ -9,7 +9,7 @@ load_dotenv()
 
 class AzureBlobConsumer:
     def __init__(self):
-        self.kafka_broker = os.getenv('KAFKA_BROKER', 'localhost:9092')
+        self.kafka_broker = os.getenv('KAFKA_BROKER', 'localhost:29092')
         self.topic = os.getenv('HISTORICAL_TOPIC', 'f1-historical-data')
         self.blob_conn_str = os.getenv('AZURE_BLOB_CONN_STR')
         self.container_name = "f1-raw"
