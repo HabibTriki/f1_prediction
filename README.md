@@ -111,6 +111,22 @@ f1-prediction/
    cp .env.example .env
    # Edit .env to add real API keys and credentials
    ```
+   The `.env.example` file contains the following variables:
+
+   - `KAFKA_BROKER` – address of the Kafka broker.
+   - `HISTORICAL_TOPIC` – Kafka topic for historical data.
+   - `HDFS_PATH` – path used to mimic HDFS locally.
+   - `POSTGRES_URL` – JDBC connection string for Spark jobs.
+   - `POSTGRES_TABLE` – destination table for batch loads.
+   - `POSTGRES_USER` – PostgreSQL user (**must match `f1user` in `docker-compose.yml`**).
+   - `POSTGRES_PASSWORD` – PostgreSQL password (**must match `f1password` in `docker-compose.yml`**).
+   - `AZURE_BLOB_CONN_STR` – Azure Blob Storage connection string.
+   - `MONGOATLAS_URI` – MongoDB Atlas connection string.
+   - `GEMINI_API_KEY` – API key for Gemini sentiment analysis.
+   - `CHECKPOINT_LOCATION` – directory for Spark checkpoints.
+   - `OPENWEATHER_API_KEY` – OpenWeatherMap API key.
+   - `WEATHER_TOPIC` – Kafka topic for weather updates.
+   - `GEOCODING_API_KEY` – API key for geocoding (optional).
 
 5. Start local services:
    ```bash

@@ -39,10 +39,13 @@ services:
       - POSTGRESQL_USERNAME=f1user
       - POSTGRESQL_PASSWORD=f1password
       - POSTGRESQL_DATABASE=formula1
+      - POSTGRESQL_POSTGRES_PASSWORD=adminpassword
     ports:
       - "5432:5432"
     volumes:
       - "postgres_data:/bitnami/postgresql"
+      - "./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql"
+
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U f1user -d formula1"]
       interval: 5s
