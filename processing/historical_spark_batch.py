@@ -52,7 +52,7 @@ def main():
         .getOrCreate()
     )
 
-    jdbc_url = os.getenv("POSTGRES_URL", "jdbc:postgresql://localhost:5432/formula1")
+    jdbc_url = "jdbc:postgresql://postgres:5432/formula1"
     table = os.getenv("POSTGRES_TABLE", "historical_avg_laps")
     user = os.getenv("POSTGRES_USER") or os.getenv("POSTGRESQL_USERNAME") or "f1user"
     password = os.getenv("POSTGRES_PASSWORD") or os.getenv("POSTGRESQL_PASSWORD") or "f1password"

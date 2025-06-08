@@ -60,11 +60,14 @@ services:
       - SPARK_MODE=master
       - SPARK_RPC_AUTHENTICATION_ENABLED=no
       - SPARK_RPC_ENCRYPTION_ENABLED=no
+      - HOME=/tmp
       - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
       - SPARK_SSL_ENABLED=no
     depends_on:
       - kafka
       - postgres
+    volumes:
+      - ./processing:/opt/bitnami/spark/app
     ports: []
 
   spark-worker:
