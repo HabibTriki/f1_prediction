@@ -49,16 +49,21 @@ class F1HistoricalProducer:
         
         # Write header
         writer.writerow([
-            'Driver', 'LapNumber', 'LapTime', 'TrackStatus', 
+            'Driver', 'LapNumber', 'LapTimeSeconds', 'TrackStatus',
             'Position', 'Compound', 'TyreLife', 'FreshTyre'
         ])
         
         # Write lap data
         for _, lap in session.laps.iterrows():
             writer.writerow([
-                lap['Driver'], lap['LapNumber'], lap['LapTime'], 
-                lap['TrackStatus'], lap['Position'], lap['Compound'], 
-                lap['TyreLife'], lap['FreshTyre']
+                lap['Driver'],
+                lap['LapNumber'],
+                lap['LapTime'].total_seconds(),
+                lap['TrackStatus'],
+                lap['Position'],
+                lap['Compound'],
+                lap['TyreLife'],
+                lap['FreshTyre'],
             ])
         
         return csv_buffer.getvalue()

@@ -139,7 +139,22 @@ f1-prediction/
 4. Run any additional ingestion or processing scripts in similar fashion.
 
 ---
+### Historical Data Batch Pipeline
 
+The historical pipeline fetches past race data from the FastF1 API and processes
+it in batch mode:
+
+1. **Publish to Kafka** – `ingestion/fastf1_historical_producer.py` downloads
+   session data and sends each CSV payload to the `f1-historical-data` topic.
+2. **Store in HDFS** – `processing/hdfs_consumer.py` reads that topic and writes
+   the files to a local `hdfs_storage/` directory (acting as HDFS).
+3. **MapReduce Aggregation** – run `processing/historical_mapreduce.py` over the
+   stored CSV files to compute average lap times per driver. The output is stored
+   under `hdfs_storage/mapreduce_output/`.
+4. **Spark Batch Load** – `processing/historical_spark_batch.py` loads the
+   MapReduce results with Spark and persists them into PostgreSQL for analysis.
+
+---
 ## Power BI Integration
 
 1. Open Power BI Desktop.

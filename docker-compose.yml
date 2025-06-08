@@ -53,9 +53,6 @@ services:
   spark-master:
     image: bitnami/spark:3.5
     container_name: spark-master
-    ports:
-      - "8080:8080"  # Spark UI
-      - "7077:7077"  # Master port
     environment:
       - SPARK_MODE=master
       - SPARK_RPC_AUTHENTICATION_ENABLED=no
@@ -65,10 +62,10 @@ services:
     depends_on:
       - kafka
       - postgres
+    ports: []
 
   spark-worker:
     image: bitnami/spark:3.5
-    container_name: spark-worker
     environment:
       - SPARK_MODE=worker
       - SPARK_MASTER_URL=spark://spark-master:7077
@@ -76,8 +73,7 @@ services:
       - SPARK_WORKER_CORES=2
     depends_on:
       - spark-master
-    deploy:
-      replicas: 2  # Scale to 2 workers
+    expose: []
 
 volumes:
   zookeeper_data:
