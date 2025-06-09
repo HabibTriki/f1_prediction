@@ -1,11 +1,13 @@
 import os
 import csv
 import fastf1
+import time
 from kafka import KafkaProducer
 from dotenv import load_dotenv
 import logging
 from datetime import datetime
 from io import StringIO
+from fastf1.req import RateLimitExceededError
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -18,7 +20,8 @@ class F1HistoricalProducer:
     def __init__(self):
         self.kafka_broker = os.getenv('KAFKA_BROKER', 'localhost:29092')
         self.topic = os.getenv('HISTORICAL_TOPIC', 'f1-historical-data')
-        
+        self.sleep_time = int(os.getenv('FASTF1_SLEEP', '10'))
+
         # Initialize Kafka producer
         self.producer = KafkaProducer(
             bootstrap_servers=[self.kafka_broker],
@@ -32,13 +35,23 @@ class F1HistoricalProducer:
 
     def fetch_session_data(self, year, gp_name, session_type):
         """Fetch session data (qualifying/race) using FastF1"""
-        try:
-            session = fastf1.get_session(year, gp_name, session_type)
-            session.load()
-            return session
-        except Exception as e:
-            logger.error(f"Error fetching {session_type} data for {year} {gp_name}: {e}")
-            return None
+        while True:
+            try:
+                session = fastf1.get_session(year, gp_name, session_type)
+                session.load()
+                return session
+            except RateLimitExceededError as e:
+                wait_time = self.sleep_time
+                logger.warning(
+                    f"Rate limit reached fetching {session_type} for {year} {gp_name}. "
+                    f"Sleeping {wait_time} seconds..."
+                )
+                time.sleep(wait_time)
+            except Exception as e:
+                logger.error(
+                    f"Error fetching {session_type} data for {year} {gp_name}: {e}"
+                )
+                return None
 
     def session_to_csv(self, session):
         """Convert FastF1 session data to CSV format"""
@@ -97,7 +110,8 @@ class F1HistoricalProducer:
                                     value=csv_data
                                 )
                                 logger.info(f"Sent {key} ({len(csv_data)} bytes)")
-                    
+                                time.sleep(self.sleep_time)
+
                     except Exception as e:
                         logger.error(f"Failed processing {year} {gp} {session_type}: {e}")
         
@@ -106,9 +120,18 @@ class F1HistoricalProducer:
         logger.info("Historical data production complete")
 
 if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Fetch historical F1 data")
+    parser.add_argument("start_year", type=int, nargs="?", default=2018,
+                        help="First season to download")
+    parser.add_argument("end_year", type=int, nargs="?",
+                        default=datetime.utcnow().year,
+                        help="Last season to download")
+    parser.add_argument("--gp", nargs="*", default=[],
+                        help="Optional list of grands prix to process")
+    args = parser.parse_args()
+
     producer = F1HistoricalProducer()
-
-    current_year = datetime.utcnow().year
-    years = list(range(1996, current_year + 1))
-
-    producer.produce_historical_data(years=years, gp_names=[])
+    years = list(range(args.start_year, args.end_year + 1))
+    producer.produce_historical_data(years=years, gp_names=args.gp)
