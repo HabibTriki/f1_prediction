@@ -12,7 +12,7 @@ class F1LapStream:
             bootstrap_servers='localhost:29092',
             value_serializer=lambda x: json.dumps(x).encode('utf-8'),
         )
-        self.topic = 'test'
+        self.topic = 'prediction_lap'
         logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger(__name__)
         
