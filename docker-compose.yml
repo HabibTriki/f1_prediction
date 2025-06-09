@@ -86,3 +86,4 @@ volumes:
     driver: local
   postgres_data:
     driver: local
+
