@@ -16,7 +16,6 @@ class HistoricalHDFSConsumer:
     def __init__(self):
         self.kafka_broker = os.getenv("KAFKA_BROKER", "localhost:29092")
         self.topic = os.getenv("HISTORICAL_TOPIC", "f1-historical-data")
-        # Local directory used to mimic HDFS
         self.hdfs_url = os.getenv("HDFS_URL", "http://namenode:9870")
         self.hdfs_root = os.getenv("HDFS_PATH", "/data")
 
