@@ -58,21 +58,31 @@ services:
     container_name: namenode
     environment:
       - CLUSTER_NAME=hdfs-cluster
+      - CORE_CONF_fs_defaultFS=hdfs://namenode:9000
+      - HDFS_CONF_dfs_replication=1
+      - HDFS_DATANODE_HOSTNAME=localhost
+
     ports:
-      - "9870:9870"
       - "9000:9000"
+      - "50070:50070"
     volumes:
       - namenode_data:/hadoop/dfs/namenode
 
   datanode:
     image: bde2020/hadoop-datanode:2.0.0-hadoop2.7.4-java8
     container_name: datanode
+    hostname: datanode  
     environment:
       - CLUSTER_NAME=hdfs-cluster
       - CORE_CONF_fs_defaultFS=hdfs://namenode:9000
+      - HDFS_CONF_dfs_datanode_address=datanode:50010      
+      - HDFS_CONF_dfs_datanode_http_address=datanode:50075 
+      - HDFS_CONF_dfs_datanode_ipc_address=datanode:50020  
+      - HDFS_CONF_dfs_replication=1
     depends_on:
       - namenode
     ports:
+      - "50075:50075"  # Add this port mapping
       - "9864:9864"
     volumes:
       - datanode_data:/hadoop/dfs/datanode

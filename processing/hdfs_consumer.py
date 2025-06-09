@@ -16,10 +16,10 @@ class HistoricalHDFSConsumer:
     def __init__(self):
         self.kafka_broker = os.getenv("KAFKA_BROKER", "localhost:29092")
         self.topic = os.getenv("HISTORICAL_TOPIC", "f1-historical-data")
-        self.hdfs_url = os.getenv("HDFS_URL", "http://namenode:9870")
+        self.hdfs_url = os.getenv("HDFS_URL", "http://localhost:50070")
         self.hdfs_root = os.getenv("HDFS_PATH", "/data")
 
-        self.hdfs_client = InsecureClient(self.hdfs_url)
+        self.hdfs_client = InsecureClient(self.hdfs_url, user='hdfs')
 
         self.consumer = KafkaConsumer(
             self.topic,
@@ -39,6 +39,10 @@ class HistoricalHDFSConsumer:
     def consume(self):
         for msg in self.consumer:
             try:
+                if msg.key is None or msg.value is None:
+                    logger.warning("Received message with empty key or value. Skipping.")
+                    continue
+
                 key = msg.key.decode("utf-8")
                 self.write_message(key, msg.value)
             except Exception as exc:
