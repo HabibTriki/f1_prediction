@@ -175,4 +175,5 @@ cython_debug/
 
 fastf1_cache/
 pyvenv.cfg
+hdfs_storage/
 data/F1_tweets.csv

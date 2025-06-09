@@ -39,36 +39,74 @@ services:
       - POSTGRESQL_USERNAME=f1user
       - POSTGRESQL_PASSWORD=f1password
       - POSTGRESQL_DATABASE=formula1
+      - POSTGRESQL_POSTGRES_PASSWORD=adminpassword
     ports:
       - "5432:5432"
     volumes:
       - "postgres_data:/bitnami/postgresql"
+      - "./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql"
+
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U f1user -d formula1"]
       interval: 5s
       timeout: 5s
       retries: 5
 
+  # HDFS Cluster
+  namenode:
+    image: bde2020/hadoop-namenode:2.0.0-hadoop2.7.4-java8
+    container_name: namenode
+    environment:
+      - CLUSTER_NAME=hdfs-cluster
+      - CORE_CONF_fs_defaultFS=hdfs://namenode:9000
+      - HDFS_CONF_dfs_replication=1
+      - HDFS_DATANODE_HOSTNAME=localhost
+
+    ports:
+      - "9000:9000"
+      - "50070:50070"
+    volumes:
+      - namenode_data:/hadoop/dfs/namenode
+
+  datanode:
+    image: bde2020/hadoop-datanode:2.0.0-hadoop2.7.4-java8
+    container_name: datanode
+    hostname: datanode  
+    environment:
+      - CLUSTER_NAME=hdfs-cluster
+      - CORE_CONF_fs_defaultFS=hdfs://namenode:9000
+      - HDFS_CONF_dfs_datanode_address=datanode:50010      
+      - HDFS_CONF_dfs_datanode_http_address=datanode:50075 
+      - HDFS_CONF_dfs_datanode_ipc_address=datanode:50020  
+      - HDFS_CONF_dfs_replication=1
+    depends_on:
+      - namenode
+    ports:
+      - "50075:50075"  # Add this port mapping
+      - "9864:9864"
+    volumes:
+      - datanode_data:/hadoop/dfs/datanode
+
   # Spark Cluster
   spark-master:
     image: bitnami/spark:3.5
     container_name: spark-master
-    ports:
-      - "8080:8080"  # Spark UI
-      - "7077:7077"  # Master port
     environment:
       - SPARK_MODE=master
       - SPARK_RPC_AUTHENTICATION_ENABLED=no
       - SPARK_RPC_ENCRYPTION_ENABLED=no
+      - HOME=/tmp
       - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
       - SPARK_SSL_ENABLED=no
     depends_on:
       - kafka
       - postgres
+    volumes:
+      - ./processing:/opt/bitnami/spark/app
+    ports: []
 
   spark-worker:
     image: bitnami/spark:3.5
-    container_name: spark-worker
     environment:
       - SPARK_MODE=worker
       - SPARK_MASTER_URL=spark://spark-master:7077
@@ -76,8 +114,7 @@ services:
       - SPARK_WORKER_CORES=2
     depends_on:
       - spark-master
-    deploy:
-      replicas: 2  # Scale to 2 workers
+    expose: []
 
 volumes:
   zookeeper_data:
@@ -86,4 +123,7 @@ volumes:
     driver: local
   postgres_data:
     driver: local
-
+  namenode_data:
+    driver: local
+  datanode_data:
+    driver: local
