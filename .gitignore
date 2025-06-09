@@ -172,3 +172,7 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+fastf1_cache/
+pyvenv.cfg
+data/F1_tweets.csv

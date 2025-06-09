@@ -10,3 +10,9 @@ sqlalchemy
 psycopg2
 python-dotenv
 tweepy
+azure-storage-blob
+emoji
+langdetect
+googletrans==4.0.0-rc1
+google-generativeai
+pymongo
