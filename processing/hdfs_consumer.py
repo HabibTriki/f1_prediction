@@ -3,6 +3,7 @@ import logging
 from kafka import KafkaConsumer
 from dotenv import load_dotenv
 from pathlib import Path
+from hdfs import InsecureClient
 
 load_dotenv()
 
@@ -10,14 +11,16 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class HistoricalHDFSConsumer:
-    """Consume historical data from Kafka and store in HDFS (local path)."""
+    """Consume historical data from Kafka and store in HDFS."""
 
     def __init__(self):
         self.kafka_broker = os.getenv("KAFKA_BROKER", "localhost:29092")
         self.topic = os.getenv("HISTORICAL_TOPIC", "f1-historical-data")
         # Local directory used to mimic HDFS
-        self.hdfs_root = Path(os.getenv("HDFS_PATH", "hdfs_storage"))
-        self.hdfs_root.mkdir(parents=True, exist_ok=True)
+        self.hdfs_url = os.getenv("HDFS_URL", "http://namenode:9870")
+        self.hdfs_root = os.getenv("HDFS_PATH", "/data")
+
+        self.hdfs_client = InsecureClient(self.hdfs_url)
 
         self.consumer = KafkaConsumer(
             self.topic,
@@ -29,12 +32,10 @@ class HistoricalHDFSConsumer:
 
     def write_message(self, key: str, value: bytes):
         year, gp_name, session_type = key.split("_")
-        dir_path = self.hdfs_root / year / gp_name
-        dir_path.mkdir(parents=True, exist_ok=True)
-        file_path = dir_path / f"{session_type}.csv"
-        with open(file_path, "wb") as f:
-            f.write(value)
-        logger.info("Wrote %s", file_path)
+        hdfs_path = f"{self.hdfs_root}/{year}/{gp_name}/{session_type}.csv"
+        with self.hdfs_client.write(hdfs_path, overwrite=True) as writer:
+            writer.write(value)
+        logger.info("Wrote %s", hdfs_path)
 
     def consume(self):
         for msg in self.consumer:

@@ -70,7 +70,7 @@ f1-prediction/
 ├── visualization/    # Power BI files and dashboard definitions
 ├── .env              # Environment variables (not committed)
 ├── .gitignore        # Files and folders to ignore in Git
-├── docker-compose.yml# Local development stack (Kafka, Postgres)
+├── docker-compose.yml# Local development stack (Kafka, Postgres, Spark, HDFS)
 ├── requirements.txt  # Python dependencies
 └── README.md         # Project overview and setup instructions
 ```
@@ -115,7 +115,10 @@ f1-prediction/
 
    - `KAFKA_BROKER` – address of the Kafka broker.
    - `HISTORICAL_TOPIC` – Kafka topic for historical data.
-   - `HDFS_PATH` – path used to mimic HDFS locally.
+   - `HDFS_URL` – WebHDFS URL of the cluster (e.g. `http://namenode:9870`).
+   - `HDFS_HOST` – namenode hostname for Hadoop URLs.
+   - `HDFS_PORT` – namenode port (default `9000`).
+   - `HDFS_PATH` – root directory used on HDFS.
    - `POSTGRES_URL` – JDBC connection string for Spark jobs.
    - `POSTGRES_TABLE` – destination table for batch loads.
    - `POSTGRES_USER` – PostgreSQL user (**must match `f1user` in `docker-compose.yml`**).
@@ -163,10 +166,11 @@ it in batch mode:
 1. **Publish to Kafka** – `ingestion/fastf1_historical_producer.py` downloads
    session data and sends each CSV payload to the `f1-historical-data` topic.
 2. **Store in HDFS** – `processing/hdfs_consumer.py` reads that topic and writes
-   the files to a local `hdfs_storage/` directory (acting as HDFS).
+   the files to an HDFS cluster configured via the `HDFS_URL`, `HDFS_HOST`,
+   `HDFS_PORT` and `HDFS_PATH` environment variables.
 3. **MapReduce Aggregation** – run `processing/historical_mapreduce.py` over the
-   stored CSV files to compute average lap times per driver. The output is stored
-   under `hdfs_storage/mapreduce_output/`.
+   stored CSV files to compute per-driver and per-compound statistics (average
+   and fastest laps). The output is stored under `mapreduce_output/` in HDFS.
 4. **Spark Batch Load** – `processing/historical_spark_batch.py` loads the
    MapReduce results with Spark and persists them into PostgreSQL for analysis.
 

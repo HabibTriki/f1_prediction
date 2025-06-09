@@ -4,6 +4,7 @@ import fastf1
 from kafka import KafkaProducer
 from dotenv import load_dotenv
 import logging
+from datetime import datetime
 from io import StringIO
 
 # Configure logging
@@ -27,7 +28,7 @@ class F1HistoricalProducer:
         )
         
         # Configure FastF1 cache
-        fastf1.Cache.enable_cache('fastf1_cache')  # Local cache to avoid re-fetching
+        fastf1.Cache.enable_cache(os.getenv("FASTF1_CACHE", "fastf1_cache"))
 
     def fetch_session_data(self, year, gp_name, session_type):
         """Fetch session data (qualifying/race) using FastF1"""
@@ -71,7 +72,17 @@ class F1HistoricalProducer:
     def produce_historical_data(self, years, gp_names):
         """Fetch and send historical data for multiple years/GPs"""
         for year in years:
-            for gp in gp_names:
+            if not gp_names:
+                try:
+                    schedule = fastf1.get_event_schedule(year)
+                    year_gps = schedule['EventName'].tolist()
+                except Exception as e:
+                    logger.error(f"Failed to load schedule for {year}: {e}")
+                    continue
+            else:
+                year_gps = gp_names
+
+            for gp in year_gps:
                 for session_type in ['Q', 'R']:  # Qualifying and Race
                     try:
                         session = self.fetch_session_data(year, gp, session_type)
@@ -96,9 +107,8 @@ class F1HistoricalProducer:
 
 if __name__ == "__main__":
     producer = F1HistoricalProducer()
-    
-    # Example: Fetch data for 2020-2023 seasons for selected GPs
-    producer.produce_historical_data(
-        years=[2020, 2021, 2022, 2023],
-        gp_names=['Monaco', 'Silverstone', 'Monza', 'Spa']
-    )
+
+    current_year = datetime.utcnow().year
+    years = list(range(1996, current_year + 1))
+
+    producer.produce_historical_data(years=years, gp_names=[])
