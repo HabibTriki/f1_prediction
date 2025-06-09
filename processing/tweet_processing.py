@@ -27,7 +27,7 @@ def main():
         .getOrCreate()
 
     # Define complete schema matching your CSV
-    schema = StructType([
+    '''schema = StructType([
         StructField("user_name", StringType()),
         StructField("user_location", StringType()),
         StructField("user_description", StringType()),
@@ -41,7 +41,33 @@ def main():
         StructField("hashtags", StringType()),
         StructField("source", StringType()),
         StructField("is_retweet", StringType())
-    ])
+    ])'''
+    schema=StructType([StructField(
+            "user",
+            StructType([
+                StructField("name", StringType()),
+                StructField("location", StringType()),
+                StructField("description", StringType()),
+                StructField("created", StringType()),
+                StructField("followers", IntegerType()),
+                StructField("friends", IntegerType()),
+                StructField("favourites", IntegerType()),
+                StructField("verified", BooleanType()),
+            ]),
+        ),
+        StructField(
+            "tweet",
+            StructType([
+                StructField("date", StringType()),
+                StructField("text", StringType()),
+                StructField("hashtags", ArrayType(StringType())),
+                StructField("source", StringType()),
+                StructField("is_retweet", BooleanType()),
+            ]),
+        ),
+        StructField(
+            "metadata", StructType([StructField("processed_at", StringType())])
+        ),])
 
     # 1. Kafka source with enhanced configuration
     kafka_df = spark.readStream \
@@ -54,7 +80,7 @@ def main():
         #.option("startingOffsets", "latest") \
         #.option("failOnDataLoss", "false") \
         #.load()
-        
+       
 
     test_query = kafka_df.select(
         col("key").cast("string"),
@@ -70,7 +96,7 @@ def main():
     test_query.stop()
 
     # 2. Data transformation pipeline
-    transformed_df = kafka_df.select(
+    '''transformed_df = kafka_df.select(
         from_json(col("value").cast("string"), schema).alias("data")) \
         .select("data.*") \
         .withColumn("processed_at", lit(datetime.utcnow().isoformat())) \
@@ -78,7 +104,33 @@ def main():
         .withColumn("language", detect_language_udf(col("cleaned_text"))) \
         .withColumn("english_text", 
                    when(col("language") != "en", translate_udf(col("cleaned_text")))
-                   .otherwise(col("cleaned_text")))
+                   .otherwise(col("cleaned_text")))'''
+    transformed_df = (
+        kafka_df
+        .select(from_json(col("value").cast("string"), schema).alias("data"))
+        .select(
+            col("data.user.name").alias("user_name"),
+            col("data.user.location").alias("user_location"),
+            col("data.user.description").alias("user_description"),
+            to_timestamp(col("data.user.created")).alias("user_created"),
+            col("data.user.followers").alias("user_followers"),
+            col("data.user.friends").alias("user_friends"),
+            col("data.user.favourites").alias("user_favourites"),
+            col("data.user.verified").cast("string").alias("user_verified"),
+            to_timestamp(col("data.tweet.date")).alias("date"),
+            col("data.tweet.text").alias("text"),
+            concat_ws(",", col("data.tweet.hashtags")).alias("hashtags"),
+            col("data.tweet.source").alias("source"),
+            col("data.tweet.is_retweet").cast("string").alias("is_retweet"),
+        )
+        .withColumn("processed_at", lit(datetime.utcnow().isoformat()))
+        .withColumn("cleaned_text", clean_text_udf(col("text")))
+        .withColumn("language", detect_language_udf(col("cleaned_text")))
+        .withColumn(
+            "english_text",
+            when(col("language") != "en", translate_udf(col("cleaned_text"))).otherwise(col("cleaned_text")),
+        )
+    )
 
     # 3. Initialize Gemini 1.5 Flash
     genai.configure(api_key=os.getenv("GEMINI_API_KEY"))

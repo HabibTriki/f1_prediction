@@ -175,3 +175,4 @@ cython_debug/
 
 fastf1_cache/
 pyvenv.cfg
+data/F1_tweets.csv
